@@ -1,0 +1,404 @@
+Все команды, которые были использованы для моей БД для лабораторной работы (2017 г.)
+
+/*1.	Найти товары, цена которых находится в диапазоне [300;1000], 
+а название содержит «стол» или «стул», выполненные из материала «МДФ». 
+Выводить код товара, название (цену не выводить).
+Отсортировать по цене по убыванию.*/
+
+SELECT ID_Tovar, NameTovar
+FROM Tovar 
+WHERE Price BETWEEN 300 AND 1000 AND NameTovar LIKE '%стол%' 
+OR NameTovar LIKE '%стул%' 
+AND Material='МДФ'
+ORDER BY Price DESC;
+
+/* 2.	Подсчитать общее количество сделок.*/
+
+SELECT COUNT(ID_Sale)
+FROM Sale;
+
+/* 3.	Сколько каждого товара продано.*/
+
+SELECT ID_Tovar, SUM (Quantity)
+FROM Sale 
+GROUP BY ID_Tovar;
+
+/* 4.	Вывести коды товаров, которые покупались 
+более чем в одной сделке.*/
+
+SELECT ID_Tovar
+FROM Sale 
+GROUP BY ID_Tovar
+HAVING COUNT(ID_Tovar)>1;
+
+/*5.	Вывести номер товара и его 
+максимальное количество в сделке*/
+
+SELECT ID_Tovar, MAX(Quantity)
+FROM Sale 
+GROUP BY ID_Tovar;
+
+/* 6.	Сколько мы можем предложить 
+своим покупателям видов столов из ДСП и ДСП/МДФ?*/
+
+SELECT COUNT (ID_Tovar)
+FROM Tovar 
+WHERE NameTovar LIKE '%стол%' AND Material IN ('МДФ', 'ДСП/МДФ');
+
+/*7.	Подсчитать количество сделок для каждого клиента в 2008 году. 
+Выводить код клиента и подсчитанное количество сделок, 
+если максимальное количество товаров в сделке для данного клиента 
+находится в диапазоне от 5 до 10 шт. 
+Отсортировать результат по среднему количеству товаров в сделке 
+для  каждого клиента по убыванию. */
+
+SELECT ID_Client, COUNT (ID_Sale)
+FROM Sale
+WHERE YEAR(Data)=2007
+GROUP BY ID_Client
+HAVING MAX(Quantity) BETWEEN 5 AND 10
+ORDER BY AVG(Quantity) DESC;
+
+--8.	Вывести все пары кровать и шкаф, которые можно подобрать из ассортимента нашей фирмы
+
+SELECT Tovar1.NameTovar, Tovar2.NameTovar
+FROM Tovar as Tovar1, Tovar AS Tovar2
+WHERE Tovar1.NameTovar  LIKE '%кровать%' AND Tovar2.NameTovar LIKE '%шкаф%';
+
+--9.	Сколько есть вариантов скомбинировать столы
+-- со стульями из товаров нашего ассортимента?
+
+SELECT Tovar1.NameTovar, Tovar2.NameTovar
+FROM Tovar as Tovar1, Tovar AS Tovar2
+WHERE Tovar1.NameTovar  LIKE '%стол%' AND Tovar2.NameTovar LIKE '%стул%';
+
+
+/* 10.	Вывести названия фирм-клиентов и даты, 
+когда они совершали покупки 
+(Использовать форму соединения INNER JOIN). */
+
+SELECT Client.ID_Client, NameClient, Data
+FROM Client INNER JOIN Sale ON Client.ID_Client=Sale.ID_Client;
+
+/*11.	Вывести названия фирм-производителей и название товаров, 
+которые они производят 
+(Использовать форму соединения FROM R,S)*/
+
+SELECT NameMaker, NameTovar
+FROM Maker, Tovar
+WHERE Maker.ID_Maker=Tovar.ID_Maker;
+
+/*12.	Вывести всю информацию из таблицы Sale, 
+заменив коды товара и покупателя их названиями 
+(Запрос выполнить двумя способами: 
+с помощью FROM R,S и INNER JOIN).*/
+
+SELECT Tovar.NameTovar, Client.NameClient,
+ Sale.Data, Sale.ID_Sale, Sale.Quantity
+FROM Tovar, Client, Sale
+WHERE Tovar.ID_Tovar=Sale.ID_Tovar AND Client.ID_Client=Sale.ID_Client;
+
+SELECT Tovar.NameTovar, Client.NameClient,
+ Sale.Data, Sale.ID_Sale, Sale.Quantity
+FROM (Tovar INNER JOIN Sale ON Tovar.ID_Tovar=Sale.ID_Tovar)
+INNER JOIN Client ON Sale.ID_Client=Client.ID_Client
+WHERE Tovar.ID_Tovar=Sale.ID_Tovar AND Client.ID_Client=Sale.ID_Client;
+
+/*13.	Сколько товаров купила каждая фирма. Вывести список: 
+название товара, наименование покупателя, количество.*/
+
+SELECT NameClient, NameTovar, SUM(Sale.Quantity)
+FROM Tovar, Client, Sale
+WHERE Tovar.ID_Tovar=Sale.ID_Tovar AND Client.ID_Client=Sale.ID_Client
+GROUP BY NameTovar, NameClient
+
+/*14.	Вывести наименование товара, название фирмы производителя 
+и город (название),в котором находится ее центральный офис.*/
+
+SELECT NameTovar, NameMaker, CityName
+FROM City, Maker, Tovar
+WHERE City.ID_City=Maker.ID_CityMaker AND Maker.ID_Maker=Tovar.ID_Maker;
+
+/*15.	Вывести информацию о сделках, 
+в которых участвовали покупатели из Харькова */
+
+SELECT Sale.*
+FROM City, Client, Sale
+WHERE City.ID_City=Client.ID_CityClient 
+AND Client.ID_Client=Sale.ID_Client
+AND CityName='Харьков';
+
+--16.	Вывести название товара и его цену, 
+--если данный товар был куплен более, чем в одной сделке.
+
+SELECT NameTovar, Price
+FROM Tovar, Sale
+WHERE Tovar.ID_Tovar=Sale.ID_Tovar
+GROUP BY NameTovar, Price 
+HAVING COUNT(Sale.ID_Tovar)>1;
+
+--17.	Вывести название товара и его цену, если данный товар 
+--был куплен хотя бы один раз (без использования having).
+
+SELECT DISTINCT Sale.ID_Tovar, NameTovar, Price
+FROM Tovar LEFT JOIN Sale ON Sale.ID_Tovar=Tovar.ID_Tovar
+WHERE ID_Sale IS NOT NULL;
+
+--18.	Вывести название товара и его цену, 
+--если данный товар ни разу не был куплен (отсутствует в таблице Sale).
+
+SELECT NameTovar, Price
+FROM Tovar LEFT JOIN Sale ON Sale.ID_Tovar=Tovar.ID_Tovar
+WHERE ID_Sale IS NULL;
+
+--19.	В каких городах находятся или производители, или покупатели (или те и другие) товаров, 
+--которыми торгует наша фирма. 
+--Вывести отсортированные коды городов без повторений.
+
+SELECT ID_CityMaker
+FROM Maker
+UNION
+SELECT ID_CityClient
+FROM Client
+
+--20.	Вывести коды городов, в которых находятся или производители, или покупатели товаров, 
+--с пометкой «Город производителя» или «Город покупателя». Отсортировать по коду города.
+
+SELECT 'Город производителя' as Город, ID_CityMaker
+FROM Maker
+UNION
+SELECT 'Город покупателя', ID_CityClient
+FROM Client
+ORDER BY 2;
+
+--21.	В каких городах находятся и покупатели, и производители товаров, 
+--которыми торгует наша фирма. Вывести отсортированные коды городов, запретить повторения. 
+--(Выполнить запрос с помощью INNER JOIN, IN, EXISTS, ANY).
+
+SELECT DISTINCT ID_CityClient
+FROM Client
+WHERE ID_CityClient = ANY(SELECT ID_CityMaker FROM Maker)
+ORDER BY ID_CityClient
+
+SELECT DISTINCT ID_CityClient
+FROM Client
+WHERE ID_CityClient IN (SELECT ID_CityMaker FROM Maker)
+ORDER BY ID_CityClient
+
+SELECT DISTINCT ID_CityClient
+FROM Client INNER JOIN (City INNER JOIN Maker ON City.ID_City=Maker.ID_CityMaker)
+ON Client.ID_CityClient=City.ID_City
+ORDER BY ID_CityClient;
+
+SELECT DISTINCT ID_CityClient
+FROM Client
+WHERE EXISTS(SELECT ID_CityMaker FROM Maker WHERE ID_CityClient=ID_CityMaker)
+ORDER BY ID_CityClient;
+
+--22.	В каких городах находятся покупатели и нет производителей. 
+--(Выполнить запрос с помощью LEFT JOIN или RIGTH JOIN, NOT IN, NOT EXISTS, ALL).
+
+SELECT DISTINCT ID_CityClient
+FROM Client
+WHERE ID_CityClient NOT IN(SELECT ID_CityMaker FROM Maker)
+ORDER BY ID_CityClient
+
+SELECT DISTINCT ID_CityClient
+FROM Client
+WHERE ID_CityClient != ALL(SELECT ID_CityMaker FROM Maker)
+ORDER BY ID_CityClient
+
+SELECT DISTINCT ID_CityClient
+FROM Client
+WHERE NOT EXISTS(SELECT ID_CityMaker FROM Maker WHERE ID_CityClient=ID_CityMaker)
+ORDER BY ID_CityClient;
+
+SELECT DISTINCT ID_CityClient
+FROM Client left JOIN Maker ON ID_CityClient=ID_CityMaker
+WHERE ID_Maker IS NULL
+ORDER BY ID_CityClient;
+
+--23.	Вывести информацию о сделках (код товара, код покупателя, количество), 
+--где количество товаров в сделке превысило среднее количество товаров по всем сделкам.
+
+SELECT ID_Tovar, ID_Client, Quantity
+FROM Sale
+WHERE Quantity>(SELECT AVG(Quantity) FROM Sale);
+
+--24.	Изменить предыдущий запрос так, чтобы выводился также столбец, 
+--содержащий разность между количеством товаров в сделке 
+--и средним количеством по всем сделкам.
+
+SELECT ID_Tovar, ID_Client, Quantity, 
+Quantity-(SELECT AVG(Quantity) FROM Sale) as 'Разность'
+FROM Sale
+WHERE Quantity>(SELECT AVG(Quantity) FROM Sale);
+
+--25.	Вывести клиентов, которые еще ни разу не покупали товар (разность таблиц)
+
+SELECT ID_Client FROM Client
+EXCEPT
+SELECT ID_Client FROM Sale;
+
+--26.	Вывести наименования товаров и их цену, которые уже покупали 
+--(т.е. участвовали хотя бы в одной сделке) 
+--(Выполнить запрос с помощью INNER JOIN, IN, EXISTS, ANY).
+
+SELECT Tovar.ID_Tovar, NameTovar, Price
+FROM Tovar INNER JOIN Sale ON Tovar.ID_Tovar=Sale.ID_Tovar
+INTERSECT
+SELECT Tovar.ID_Tovar, NameTovar, Price FROM Tovar;
+
+SELECT ID_Tovar, NameTovar, Price
+FROM Tovar 
+WHERE ID_Tovar IN (SELECT ID_Tovar FROM Sale);
+
+SELECT ID_Tovar, NameTovar, Price
+FROM Tovar
+WHERE EXISTS ( SELECT ID_Tovar FROM Sale WHERE Tovar.ID_Tovar=ID_Tovar)
+
+SELECT ID_Tovar, NameTovar, Price
+FROM Tovar 
+WHERE ID_Tovar = any (SELECT ID_Tovar FROM Sale);
+
+--27.	На какую сумму покупатель ООО Калина совершил сделок.
+
+SELECT SUM(Quantity*Price)
+FROM Client, Sale, Tovar
+WHERE Client.ID_Client=Sale.ID_Client AND Tovar.ID_Tovar=Sale.ID_Tovar
+ AND NameClient='ООО Калина';
+ 
+ --28.	Вывести название фирм-покупателей, которые до 1.04.2006 покупали товар
+ -- более одного раза, результат отсортировать по убыванию по названию фирм-покупателей.
+ 
+ SELECT NameClient
+ FROM Sale, Client
+ WHERE Sale.ID_Client=Client.ID_Client AND Data<'04.01.2006' AND Quantity>1
+ ORDER BY NameClient DESC
+ 
+ --29.	Подсчитать количество клиентов, которые являются абонентами 
+ --для каждого телефонного оператора. Будем считать, что операторы 
+ --классифицируются первыми 5-ю символами телефонного номера. Выводить номер оператора 
+ --(первые 5 символов телефонного номера) и количество абонентов.
+ 
+ SELECT LEFT(Phone,6), COUNT(ID_Client)
+ FROM Client
+ GROUP BY  LEFT(Phone,6);
+ 
+ --30.	Отсортировать отношение-экземпляр City по последним 2-м буквам наименования города.
+ SELECT *
+ FROM City
+ ORDER BY RIGHT(CityName, 2)
+ 
+ --31.	Высчитать доход от реализации каждого товара в 2006, 
+ --кроме товара кровать «Умка» (информация о данном товаре не интересует). 
+ --Вывести код товара, название товара и доход, полученный от продажи данного товара,
+ -- если количество проданного товара в 2006г находится в диапазоне от 2 до 10 включительно. 
+ -- Результат отсортировать по доходу по убыванию, а затем по названию товара по возрастанию.
+ 
+ SELECT Sale.ID_Tovar, NameTovar, SUM(Price*Quantity)AS 'Доход'
+ FROM Sale, Tovar
+ WHERE Sale.ID_Tovar=Tovar.ID_Tovar AND NameTovar NOT LIKE '%Умка%' 
+ AND Quantity BETWEEN 2 AND 10 
+ AND YEAR(Data)=2006
+ GROUP BY Sale.ID_Tovar, NameTovar
+ Order BY Доход DESC, NameTovar; 
+ 
+ --32.	Высчитать на какую сумму купила каждая фирма-покупатель 
+ --каждого вида товара первого сорта в 2006 году. Ввести название 
+ --фирмы-покупателя, название товара, сумму, отсортировать результат 
+ --по сумме по убыванию.
+ 
+ SELECT NameClient, NameTovar, SUM(Quantity*Price) AS 'Сумма'
+ FROM Sale, Tovar, Client
+ WHERE Sale.ID_Tovar=Tovar.ID_Tovar AND Client.ID_Client=Sale.ID_Client
+ AND Sort='1' AND YEAR(Data)=2006
+ GROUP BY NameClient, NameTovar
+ ORDER BY Сумма DESC
+ 
+ --33.	Найти тех производителей, доход от реализации товаров которых 
+ --в 2006 году превышает 10000грн., при этом информация о производителе 
+ --«ООО Снайт» не интересует. Вывести название производителя, доход 
+ --(от продажи товаров данного производителя), результат отсортировать 
+ --по величине дохода по возрастанию.
+ 
+ SELECT NameMaker, SUM(Quantity*Price) AS 'Доход'
+ FROM Maker, Sale, Tovar
+ WHERE Sale.ID_Tovar=Tovar.ID_Tovar AND Tovar.ID_Maker=Maker.ID_Maker
+ AND YEAR(Data)=2006
+ AND NameMaker !='ООО СНАЙТ'
+ GROUP BY NameMaker
+ HAVING SUM(Quantity*Price)>10000
+ ORDER BY Доход
+
+
+ --34.	Найти производителя,  доход от реализации товаров 
+ --которого в 2006 году был максимальным.
+ 
+ SELECT NameMaker, SUM(Price*Quantity)
+ FROM Maker, Sale, Tovar
+ WHERE Sale.ID_Tovar=Tovar.ID_Tovar AND Tovar.ID_Maker=Maker.ID_Maker AND YEAR(Data)=2006
+ GROUP BY NameMaker
+ HAVING SUM(Price*Quantity)>(SELECT MAX(Price*Quantity)
+ FROM Maker, Sale, Tovar
+ WHERE Sale.ID_Tovar=Tovar.ID_Tovar AND Tovar.ID_Maker=Maker.ID_Maker AND YEAR(Data)=2006)
+ 
+ --35.	* Подсчитать количество городов, в которых находятся клиенты 
+ --(без повторов). (Выполнить запрос 2 вариантами: используя distinct в count () 
+ --(Access не поддерживает), НЕ используя distinct в count ()).
+ 
+ SELECT  COUNT ( DISTINCT ID_CityClient)AS 'Cities'
+ FROM Client
+ 
+ --36.	* Найти таких клиентов, которые купили товаров в 2006 году 
+ --на сумму более 100грн и которые после 2006 года товаров не покупали. 
+ --Вывести код клиента, наименование клиента, подсчитанную сумму.
+ 
+ SELECT Sale.ID_Sale, Sale.ID_Tovar, NameClient, SUM(Price*Quantity)
+ FROM Tovar, Sale, Client
+ WHERE Tovar.ID_Tovar=Sale.ID_Tovar 
+ AND Sale.ID_Client=Client.ID_Client
+ AND YEAR(Data)=2006 
+ GROUP BY Sale.ID_Sale, Sale.ID_Tovar, NameClient
+ HAVING SUM(Price*Quantity)>100 OR SUM(Price*Quantity)= (SELECT SUM(Price*Quantity)
+ FROM Tovar, Sale WHERE Tovar.ID_Tovar=Sale.ID_Tovar 
+ AND YEAR(Data)>2006 HAVING SUM(Price*Quantity)=0)
+ 
+ --37.	*Подсчитайте одним запросом: сколько было продано каждого товара в 2006, 2007 годах
+ -- и разность между количеством в 2006 и 2007 годами. (Использовать коррелирующие подзапросы
+ --  и функцию проверки на NULL (для Access функция IIF, для SQL SERVER функция 
+ --  COALESCE или ISNULL)). Вывести код товара, его название, сколько продано данного 
+ --  товара в 2006г, сколько продано данного товара в 2007г, разность между количеством 
+ --  в 2006 и 2007 годами.
+ 
+ SELECT YEAR(Data),Sale.ID_Tovar, NameTovar, SUM(Quantity),
+ (SELECT SUM(Quantity) FROM Sale WHERE YEAR(Data)=2006 )-
+ (SELECT SUM(Quantity) FROM Sale WHERE YEAR(Data)=2007 )
+ FROM Sale, Tovar
+ WHERE Sale.ID_Tovar=Tovar.ID_Tovar AND
+ YEAR(Data)=2006 OR YEAR(Data)=2007
+ GROUP BY  YEAR(Data), Sale.ID_Tovar, NameTovar
+ 
+ --38.	*Подсчитать одним запросом количество 
+ --строк в каждой из следующих таблиц: Client, Tovar, Sale. 
+ 
+ SELECT 'Таблица Client' AS Товар, COUNT (*)
+ FROM Client
+ UNION
+ SELECT 'Таблица Tovar', COUNT (*)
+ FROM Tovar
+ UNION  
+ SELECT 'Таблица Sale', COUNT (*)
+ FROM Sale
+
+ --39.	*Подсчитать одним запросом количество строк в 
+ --каждой из следующих таблиц: Client, Tovar, Sale.
+ 
+ SELECT COUNT (*) AS  Таблица_Клиент, (SELECT COUNT(*)  FROM Tovar) AS Таблица_Tovar, 
+ (SELECT COUNT(*) FROM Sale)AS Таблица_Sale
+ FROM Client 
+
+ --40.	*Подсчитать общее количество строк в трех таблицах Client, Tovar, Sale.  
+ 
+ SELECT COUNT (*) + (SELECT COUNT(*)  FROM Tovar) + (SELECT COUNT(*) FROM Sale) AS Кол_во_строк
+ FROM Client
